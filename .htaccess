@@ -1,0 +1,62 @@
+# Budget Harian
+Options -Indexes
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Paksa HTTPS (aman di belakang Cloudflare)
+  RewriteCond %{HTTPS} off
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  RewriteCond %{HTTP:CF-Visitor} !https
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # Blokir folder internal
+  RewriteRule (^|/)(config|includes|storage|database|logs|vendor)(/|$) - [F,L]
+  # Blokir file tersembunyi (kecuali .well-known)
+  RewriteRule (^|/)\.(?!well-known) - [F,L]
+</IfModule>
+
+# Blokir file sensitif / debug
+<FilesMatch "(?i)\.(md|sql|log|zip|rar|7z|tar|gz|bak|old|orig|swp|ini|sh|env|lock|dist|example)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+<FilesMatch "(?i)^(composer\.(json|lock)|package(-lock)?\.json|phpinfo\.php|test.*\.php|debug.*\.php)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+  <FilesMatch "\.(html|php|js|css|json|webmanifest)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+  <FilesMatch "^sw\.js$">
+    Header set Service-Worker-Allowed "./"
+  </FilesMatch>
+</IfModule>
+
+<IfModule mod_mime.c>
+  AddType application/manifest+json .webmanifest
+  AddType application/javascript .js .mjs
+</IfModule>
+
+# Batas upload (jika hosting mengizinkan php_value)
+<IfModule mod_php.c>
+  php_value upload_max_filesize 12M
+  php_value post_max_size 14M
+</IfModule>
